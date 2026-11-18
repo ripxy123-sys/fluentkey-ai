@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1020"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon-192.svg"><title>FluentKey AI</title>
+<style>
+:root{--bg:#0b1020;--panel:#141c31;--line:#293550;--muted:#9aa8c2;--text:#f4f7ff;--accent:#8b7cff;--green:#39d6a0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0%,#29245a 0,transparent 35%),var(--bg);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:auto;padding:26px 18px 50px}.brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#9b8cff,#4b5fff);display:grid;place-items:center;font-size:23px;font-weight:800}
+h1{font-size:24px;margin:0}.sub{color:var(--muted);margin:4px 0 22px}.card{background:#121a2d;border:1px solid var(--line);border-radius:20px;padding:18px;margin:14px 0}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 8px}textarea,select{width:100%;background:#0c1426;border:1px solid var(--line);border-radius:12px;color:var(--text);padding:13px;font:inherit}textarea{min-height:118px;resize:vertical}
+.styles{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.style{border:1px solid var(--line);background:#0c1426;color:#dbe3f7;padding:9px 12px;border-radius:999px;cursor:pointer}.style.active{background:#302b64;border-color:#9588ff;color:white}
+button.primary{width:100%;border:0;border-radius:12px;padding:14px;background:linear-gradient(90deg,#8878ff,#596dff);color:white;font-weight:700;font-size:16px;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.result{white-space:pre-wrap;line-height:1.55}.hint{font-size:12px;color:var(--muted)}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.tag{font-size:11px;color:var(--green);border:1px solid #256b59;padding:4px 8px;border-radius:20px}
+#status{color:var(--muted);font-size:13px;margin-top:10px;min-height:18px}.copy{background:transparent;border:1px solid var(--line);color:#dce4fa;padding:8px 12px;border-radius:9px;cursor:pointer}
+</style></head>
+<body><main>
+<div class="brand"><div class="logo">F</div><div><h1>FluentKey AI</h1><div class="hint">Write naturally. Learn every day.</div></div></div>
+<p class="sub">Your personal English writing assistant · Prototype v0.1</p>
+<section class="card">
+<label for="source">YOUR MESSAGE</label>
+<textarea id="source" placeholder="Type something… e.g. I am not understand what you saying"></textarea>
+<label style="margin-top:14px">CONTENT STYLE</label>
+<div class="styles" id="styles">
+<button class="style active" data-style="Natural">Natural</button><button class="style" data-style="Casual">Casual</button><button class="style" data-style="Professional">Professional</button><button class="style" data-style="Friendly">Friendly</button><button class="style" data-style="Confident">Confident</button><button class="style" data-style="Dating">Dating</button><button class="style" data-style="Short">Short</button>
+</div>
+<label for="task">ACTION</label><select id="task"><option value="rewrite">Rewrite in better English</option><option value="grammar">Fix grammar only</option><option value="translate">Translate Malayalam to English</option><option value="explain">Explain my mistakes</option><option value="reply">Suggest a reply</option></select>
+<button class="primary" id="go" style="margin-top:14px">Improve with AI ✨</button><div id="status">Demo mode works without an API key. Connect the backend for real AI responses.</div>
+</section>
+<section class="card">
+<div class="row"><strong>YOUR RESULT</strong><span class="tag">AI OUTPUT</span></div>
+<p class="result" id="result">Your improved message will appear here.</p>
+<div class="row"><span class="hint" id="explain"></span><button class="copy" id="copy">Copy result</button></div>
+</section>
+<p class="hint">Privacy-first design: text is only sent to your own backend when you press Improve. Do not paste passwords, payment details or sensitive private messages.</p>
+</main>
+<script>
+let chosen="Natural";
+document.querySelectorAll(".style").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".style").forEach(x=>x.classList.remove("active"));b.classList.add("active");chosen=b.dataset.style}));
+const source=document.getElementById("source"),result=document.getElementById("result"),status=document.getElementById("status"),explain=document.getElementById("explain"),go=document.getElementById("go");
+go.addEventListener("click",async()=>{
+ const text=source.value.trim(); if(!text){status.textContent="Type a sentence first.";return}
+ go.disabled=true;go.textContent="Working…";status.textContent="Trying your FluentKey AI backend…";explain.textContent="";
+ try{
+  const r=await fetch("/api/rewrite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,style:chosen,task:document.getElementById("task").value})});
+  if(!r.ok) throw new Error("Backend not connected");
+  const data=await r.json();result.textContent=data.result||"No result returned.";explain.textContent=data.explanation||"";status.textContent="AI result ready.";
+ }catch(e){
+  result.textContent=demo(text,chosen,document.getElementById("task").value);
+  status.textContent="Demo result shown. Start the backend and add your API key for real ChatGPT-powered results.";
+ }finally{go.disabled=false;go.textContent="Improve with AI ✨"}
+});
+function demo(t,s,task){
+ const exact={"i am not understand what you saying":"I don't understand what you're saying.","i didn't went there":"I didn't go there.","he don't know":"He doesn't know."};
+ let v=exact[t.toLowerCase()]||t;
+ if(task==="explain")return "Demo explanation: Check subject–verb agreement, verb tense and natural word order. Connect the AI backend for a sentence-specific explanation.";
+ if(task==="translate")return "Connect the AI backend to translate Malayalam text into natural English.";
+ if(s==="Short")return v.replace(/\b(I would like to|I want to|I am going to)\b/gi,"I'll").slice(0,110);
+ if(s==="Casual")return v.replace(/I would like to/gi,"I'd love to").replace(/do not/gi,"don't");
+ if(s==="Professional")return v.replace(/can't/gi,"cannot").replace(/wanna/gi,"would like to");
+ if(s==="Friendly")return v.replace(/[.!?]?$/," 😊");
+ if(s==="Dating")return v.replace(/[.!?]?$/," 😉");
+ if(s==="Confident")return v.replace(/maybe /gi,"").replace(/[.!?]?$/,".");
+ return v;
+}
+document.getElementById("copy").addEventListener("click",async()=>{await navigator.clipboard.writeText(result.textContent);status.textContent="Copied."});
+</script><script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body></html>
